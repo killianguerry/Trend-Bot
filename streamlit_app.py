@@ -224,8 +224,18 @@ else:
         "On teste chaque combinaison sur les deux périodes pour repérer les "
         "réglages qui marchent partout, pas seulement grâce à un crash particulier."
     )
-    period_full_start = st.sidebar.date_input("Période 1 — début", value=pd.Timestamp("2000-01-01"))
-    period_recent_start = st.sidebar.date_input("Période 2 — début", value=pd.Timestamp("2003-01-01"))
+    period_full_start = st.sidebar.date_input(
+        "Période 1 — début", value=pd.Timestamp("2000-01-01"), key="sweep_period1_start"
+    )
+    period_recent_start = st.sidebar.date_input(
+        "Période 2 — début", value=pd.Timestamp("2003-01-01"), key="sweep_period2_start"
+    )
+
+    if period_full_start == period_recent_start:
+        st.sidebar.warning(
+            "⚠️ Les deux dates de début sont identiques — le balayage ne "
+            "comparera rien, change au moins une des deux dates."
+        )
 
     st.sidebar.header("Coûts IBKR (avancé)")
     margin_rate_tier1 = st.sidebar.number_input(
@@ -245,10 +255,22 @@ else:
             st.error("Aucune combinaison à tester avec ces réglages, élargis les plages.")
             st.stop()
 
+        # Labels incluant la date réelle, pour vérifier sans ambiguïté ce qui a
+        # été utilisé (évite de se demander a posteriori si les dates étaient
+        # bien différentes).
         periods = {
-            "Période 1": str(period_full_start),
-            "Période 2": str(period_recent_start),
+            f"Depuis {period_full_start}": str(period_full_start),
+            f"Depuis {period_recent_start}": str(period_recent_start),
         }
+        st.write(f"**Périodes testées :** {list(periods.keys())[0]} et {list(periods.keys())[1]}")
+
+        if period_full_start == period_recent_start:
+            st.error(
+                "Les deux dates de début sont identiques — corrige au moins "
+                "une des deux dates dans la sidebar avant de relancer."
+            )
+            st.stop()
+
         costs = build_costs(margin_rate_tier1, commission_per_share)
 
         with st.spinner(f"Téléchargement des données {ticker}..."):
